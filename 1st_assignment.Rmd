@@ -1,13 +1,14 @@
 ---
-title: "第一次作业你的报告题目"
-CJKmainfont: Songti SC
-author: "your name"
+title: "链家二手房数据分析报告"
+author: "周斌2023281051033"
 date: "`r Sys.Date()`"
+header-includes:
+  - \usepackage{ctex}
+  - \usepackage[utf8]{inputenc}
+  - \usepackage{fontspec}
 output:
   pdf_document:
     latex_engine: xelatex
-  word_document:
-    toc: yes
   html_document:
     code_folding: show
     fig_caption: yes
@@ -16,45 +17,43 @@ output:
     number_sections: yes
     theme: cosmo
     toc: yes
+  word_document:
+    toc: yes
 ---
+
 ```{r setup, include = FALSE,echo = FALSE}
-knitr::opts_chunk$set(echo = FALSE,error = FALSE, warning = FALSE, message = FALSE,
-                      out.width = "100%", split = FALSE, fig.align = "center")
+knitr::opts_chunk$set(echo = FALSE,error = FALSE, warning = FALSE, message = FALSE,  out.width = "100%", split = FALSE, fig.align = "center")
+options(grDevices.checkFonts = FALSE)
 #load library
 library(tidyverse)
-library(kableExtra)
 library(lubridate)
 library(scales)
 library(plotly)
 library(patchwork)
 library(ggrepel)
+library(dplyr)
+library(ggplot2)
+library(showtext)
+showtext_auto(enable = TRUE)
 ```
 
-# 你的主要发现
-
-1. 发现1
-
-1. 发现2
-  
-1. 发现3
-    
 
 # 数据介绍
 
 本报告**链家**数据获取方式如下：
-    
-报告人在2023年9月12日获取了[链家武汉二手房网站](https://wh.lianjia.com/ershoufang/)数据。
-    
-- 链家二手房网站默认显示100页，每页30套房产，因此本数据包括3000套房产信息；
-    
-- 数据包括了页面可见部分的文本信息，具体字段及说明见作业说明。
 
- **说明：**数据仅用于教学；由于不清楚链家数据的展示规则，因此数据可能并不是武汉二手房市场的随机抽样，结论很可能有很大的偏差，甚至可能是错误的。
-    
+报告人在2023年9月12日获取了[链家武汉二手房网站](https://wh.lianjia.com/ershoufang/)数据。
+
+-   链家二手房网站默认显示100页，每页30套房产，因此本数据包括3000套房产信息；
+
+-   数据包括了页面可见部分的文本信息，具体字段及说明见作业说明。
+
+**说明：**数据仅用于教学；由于不清楚链家数据的展示规则，因此数据可能并不是武汉二手房市场的随机抽样，结论很可能有很大的偏差，甚至可能是错误的。
+
 ```{r}
 # 载入数据和预处理
 
-lj<- read_csv("/Users/jameschen/Documents/02_Teaching/12_quantitative_thinking_R/data/2023-09-12_cleaned.csv")
+lj202309 <- read_csv("D:\\grInstall\\assignment\\statistics\\1st_assignment_eda-MyCrazy520\\data\\2023-09-12_cleaned.csv")
 # EDA ---------------------------------------------------------------------
 
 ## 如下语句可以解决画图中的中文显示问题，当然你可以用showtext包来解决
@@ -62,93 +61,169 @@ lj<- read_csv("/Users/jameschen/Documents/02_Teaching/12_quantitative_thinking_R
 theme_set(theme(text = element_text(family="Songti SC",size = 10))) #这里family设置成你系统中的中文字体名。
 
 # 做一些数据预处理，比如把字符型变成factor。
-
 ```
 
-# 数据概览
-
-数据表（lj)共包括`r names(lj)`等`r ncol(lj)`个变量,共`r nrow(lj)`行。表的前10行示例如下：
-
-```{r}
-lj %>% 
-  head(10) %>%
-  kable(caption = "武汉链家二手房") %>% 
-  kable_styling()
-```
 
 各变量的简短信息：
+
 ```{r}
-glimpse(lj)
+glimpse(lj202309)
 ```
 
 各变量的简短统计：
+
 ```{r}
-summary(lj)
+summary(lj202309)
 ```
 
 可以看到：
 
-- 直观结论1
+1.总价（price_ttl）的最小值为10.6w，最大值为1380.0w，平均值为155.9w。
 
-- 直观结论2
+2.单价（price_sqm）的最小值为1771，最大值为44656，平均值为15148。
 
-- ...
+3.卧室数量（bedrooms）的最小值为1，最大值为7，平均值为2.695。
+
+4.客厅数量（livingrooms）的最小值为0，最大值为4，平均值为1.709。
+
+5.建筑面积（building_area）的最小值为22.77，最大值为588.66，平均值为100.87
+
+6.主要朝向（directions1）最多为南
+
+7.次要朝向（directions2）最多为北
+
+8.装修状况（decoration）最多为精装
+
+9.楼栋总层数（property_t_height）最多为33，其次为34，最高为62
+
+10.建筑形式（property_style）最多板楼
+
+11.二手房网站的关注人数（followers）最多为262
+
 
 # 探索性分析
+## 数值描述与图形1:箱线图
+#### 绘制一个基于price_sqm和property_region的箱线图，以比较不同地区的价格分布情况。每个地区的箱线图会以不同的颜色进行区分
 
-## 变量1的数值描述与图形
 
-发现：
-
-- 发现1
-
-- 发现2
-
-## 变量2的数值描述与图形
-
-发现：
-
-- 发现1
-
-- 发现2
-
-## 变量...的数值描述与图形
+```{r}
+lj202309  %>% ggplot(aes(price_sqm,color=property_region)) +
+  geom_boxplot() +
+  coord_flip() +
+  theme_bw(base_family = "Songti SC")
+```
 
 发现：
 
-- 发现1
+- 中北路的价格中间值和最大值，都是在整个武汉区域最高的
 
-- 发现2
+## 数值描述与图形2:直方图
+#### 按照property_region,进行分组，统计出数量大于60的楼盘数量的直方图
 
-## 探索问题1
+```{r}
+df_filtered <- lj202309 %>%
+  group_by(property_region) %>%
+  filter(n() > 60)
+plot <- df_filtered %>%
+  ggplot(aes(x = property_region)) +
+  geom_bar(fill = "blue") +
+  labs(x = "区域名称", y = "小区数量") +
+  ggtitle("区域小区数量直方图")
+print(plot)
+```
+
+发现：
+-   白沙洲片区楼盘最多，其次为盘龙城
+
+## 数值描述与图形3:比例直方图
+####房本满2年在白沙洲片区和中北路片区所占的比例
+```{r}
+# 统计房本满两年的数量和整个白沙洲楼盘总数
+counts <- lj202309 %>%
+  filter(property_region == "白沙洲") %>%
+  mutate(if_2y = if_2y == "房本满两年") %>%
+  summarise(total_count = n(),
+            count_if_2y = sum(if_2y, na.rm = TRUE))
+
+# 计算比例
+counts$proportion <- counts$count_if_2y / counts$total_count
+
+# 绘制直方图
+ggplot(counts, aes(x = counts$count_if_2y, y = counts$proportion)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(x = "满两年数量", y = "所占比例",subtitle = paste("比例：", round(counts$proportion * 100, 2), "%")) +
+  ggtitle("白沙洲房本满两年") +
+  theme_minimal()
+
+```
+发现：
+
+--  白沙洲片区房本满两年比例只有57.49%,说明大部分房屋都是新建的
+--  白沙洲片区外来人口比较多
+
+
+## 探索问题1:房屋的建筑面积和房屋单价是否存在递增关系？
+#### 提取楼盘数最多的片区(白沙洲)，标绘出横轴为建筑面积和房屋单价的折线图
+```{r}
+# 提取白沙洲的楼盘数据
+lj20309_white_sand <- lj202309 %>%
+  filter(property_region == "白沙洲")
+
+# 按建筑面积和房屋单价分组并计算每组的楼盘数
+grouped_data <- lj20309_white_sand %>%
+  group_by(building_area, price_sqm) %>%
+  summarise(count = n())
+
+# 绘制折线图
+ggplot(grouped_data, aes(x = building_area, y = price_sqm, group = 1)) +
+  geom_line() +
+  labs(x = "建筑面积", y = "房屋单价") +
+  theme_minimal()
+```
+发现：
+
+- 房屋单价在房屋建筑面积为80-140这个区间，并不是随房屋建筑面积的增加，房屋单价会递增，而是基本保持一个均线趋势
+
+- 房屋单价的高低，和建筑面接没有太大的关系
+
+## 探索问题2:房屋单价和是否靠近地铁是否有关系?
+#### 分别绘制是否靠近地铁房价的箱线图
+```{r}
+data_near_subway <- subset(lj202309, near_subway == "近地铁")
+# 绘制靠近地铁房价的箱线图
+p1 <- ggplot(data_near_subway, aes(x = near_subway, y = price_sqm)) +
+  geom_boxplot() +
+  labs(x = "靠近地铁", y = "房价") +
+  ggtitle("靠近地铁房价的箱线图")
+print(p1)
+
+# 绘制不靠近地铁房价的箱线图
+data_not_near_subway <- subset(lj202309, is.na(near_subway))
+p2 <- ggplot(data_not_near_subway, aes(x = near_subway, y = price_sqm)) +
+  geom_boxplot() +
+  labs(x = "不靠近地铁", y = "房价") +
+  ggtitle("不靠近地铁房价的箱线图")
+print(p2)
+
+```
+
 
 发现：
 
-- 发现1
+-   靠近地铁的房价比不靠近地图的房屋单价上限，中位数都要高
 
-- 发现2
+-   房屋单价和是否靠近地铁有关系
 
-## 探索问题2
+## 探索问题2:房屋户型中南北通透是否受欢迎?
+#### 计算出南北通透的房屋占所有房源的比例
 
-发现：
 
-- 发现1
-
-- 发现2
-
-## 探索问题3
-
-发现：
-
-- 发现1
-
-- 发现2
-
----
+------------------------------------------------------------------------
 
 # 发现总结
 
-用1-3段话总结你的发现。
+-- 房屋价格和多个因素有关，例如是否靠近地铁，房屋所在的区域，这些因素有关的房屋升值空间大
 
+-- 房屋单价和房屋的面积并没有直接的关系，为了分散投资降低风险，可以采取购买多套小户型的房屋
 
-
+-- 房屋朝南，南北通透，是房屋最好的选项
